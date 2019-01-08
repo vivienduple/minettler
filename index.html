@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Minettler</title>
+	<style type="text/css">
+		@font-face{
+			font-family: 'VT323';
+			src: url('fonts/vt323/VT323-Regular.ttf') format('opentype');
+		}
+		
+		body{
+			text-align: center;
+			background-color: #333;
+		}
+	</style>
+	<script type="text/javascript">
+		window.onload = init;
+		
+		const AMMO = 10;
+		
+		const TOTAL_LEFT_AMMO = AMMO/2;
+		const TOTAL_RIGHT_AMMO = AMMO/2;
+		
+		const AMMO_RELOAD_TIME = 1;
+		const UBOAT_BOMB_RELOAD_TIME = 0.5;
+		
+		const UBOAT_BOMB_TIME_SINCE_RELOAD_TIME = 1;
+		
+		const PLAYER_LIVES = 5;
+
+		function PlayerBoatExplosionSound(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/playerboat_explosion_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function UboatBombExplosionSound(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/uboat_bomb_explosion_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function LaunchPlayerBombSound1(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/launch_player_bomb_left_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function LaunchPlayerBombSound0(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/launch_player_bomb_right_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function StandardUboatBombLaunchingSound(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/standard_uboat_bomb_launching_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function StandardUboatExplosionSound(){
+			this.sound = new Audio();
+			this.sound.src = './sounds/standard_uboat_explosion_sound.ogg';
+			
+			this.play = function(){
+				this.sound.play();
+			}
+		}
+		
+		function UIScoreSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.score = 0;
+			
+			this.draw = function(){
+				screen.font = '20px VT323';
+				screen.fillStyle = '#a06e50';
+				screen.textAlign = 'left';
+				screen.fillText('Score: '+this.score, this.posx, this.posy);
+			}
+		}
+		
+		function MenuBackgroundSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 800;
+			this.height = 600;
+			
+			this.draw = function(){
+				screen.fillStyle = '#4465c4';
+				screen.fillRect(this.posx, this.posy, this.width, this.height);
+			}
+		}
+		
+		function PlayButtonSprite(screen){
+			this.posx = 100;
+			this.posy = 100;
+			this.width = 200;
+			this.height = 64;
+			this.text = 'Play';
+			this.marginx = 74;
+			this.marginy = 40;
+			
+			this.isOn = true;
+			
+			this.draw = function(){
+				screen.fillStyle = '#e3ad3f';
+				screen.fillRect(this.posx, this.posy, this.width, this.height);
+				if(this.isOn){
+					screen.fillStyle = '#a06e50';
+					screen.fillRect(this.posx+8, this.posy+8, this.width-16, this.height-16);
+					screen.fillStyle = '#e3ad3f';
+					screen.fillRect(this.posx+10, this.posy+10, this.width-20, this.height-20);
+				}
+				screen.font = '32px VT323';
+				screen.fillStyle = '#a06e50';
+				screen.textAlign = 'left';
+				screen.fillText(this.text, this.posx+this.marginx, this.posy+this.marginy);
+			}
+		}
+		
+		function NewGameButtonSprite(screen){
+			this.posx = 100;
+			this.posy = 100;
+			this.width = 200;
+			this.height = 64;
+			this.text = 'New Game';
+			this.marginx = 48;
+			this.marginy = 40;
+			
+			this.isOn = true;
+			
+			this.draw = function(){
+				screen.fillStyle = '#e3ad3f';
+				screen.fillRect(this.posx, this.posy, this.width, this.height);
+				if(this.isOn){
+					screen.fillStyle = '#a06e50';
+					screen.fillRect(this.posx+8, this.posy+8, this.width-16, this.height-16);
+					screen.fillStyle = '#e3ad3f';
+					screen.fillRect(this.posx+10, this.posy+10, this.width-20, this.height-20);
+				}
+				screen.font = '32px VT323';
+				screen.fillStyle = '#a06e50';
+				screen.textAlign = 'left';
+				screen.fillText(this.text, this.posx+this.marginx, this.posy+this.marginy);
+			}
+		}
+		
+		function AboutButtonSprite(screen){
+			this.posx = 100;
+			this.posy = 100;
+			this.width = 200;
+			this.height = 64;
+			this.text = 'About';
+			this.marginx = 68;
+			this.marginy = 40;
+			
+			this.isOn = false;
+			
+			this.draw = function(){
+				screen.fillStyle = '#e3ad3f';
+				screen.fillRect(this.posx, this.posy, this.width, this.height);
+				if(this.isOn){
+					screen.fillStyle = '#a06e50';
+					screen.fillRect(this.posx+8, this.posy+8, this.width-16, this.height-16);
+					screen.fillStyle = '#e3ad3f';
+					screen.fillRect(this.posx+10, this.posy+10, this.width-20, this.height-20);
+				}
+				screen.font = '32px VT323';
+				screen.fillStyle = '#a06e50';
+				screen.textAlign = 'left';
+				screen.fillText(this.text, this.posx+this.marginx, this.posy+this.marginy);
+				
+			}
+		}
+		
+		function TitleSprite(screen){
+			this.posx = 270;
+			this.posy = 64;
+			this.title = 'Minettler';
+			
+			this.draw = function(){
+				screen.font = '64px VT323';
+				screen.fillStyle = '#ffffff';
+				screen.textAlign = 'left';
+				screen.fillText(this.title, this.posx, this.posy);
+			}
+		}
+		
+		function SmallExplosionSprite(screen){
+			this.posx = 0;
+			this.posy = 146;
+			this.width = 8;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/explosion_small_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function PlayerBoatSprite(screen){
+			this.posx = 0;
+			this.posy = 146;
+			this.width = 80;
+			this.height = 22;
+			this.image = new Image();
+			this.image.src = './images/boat_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function KeyArrowUpSprite(screen){
+			this.posx = 8;
+			this.posy = 552;
+			this.width = 40;
+			this.height = 40;
+			this.image = new Image();
+			this.image.src = './images/key_arrowup_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+				screen.font = '32px VT323';
+				screen.fillStyle = '#ffffff';
+				screen.textAlign = 'left';
+				screen.fillText('Choice Up', this.posx+this.width+8, this.posy+this.height/3*2+2);
+			}
+		}
+		
+		function KeyArrowDownSprite(screen){
+			this.posx = 0;
+			this.posy = 146;
+			this.width = 40;
+			this.height = 40;
+			this.image = new Image();
+			this.image.src = './images/key_arrowdown_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+				screen.font = '32px VT323';
+				screen.fillStyle = '#ffffff';
+				screen.textAlign = 'left';
+				screen.fillText('Choice Down', this.posx+this.width+8, this.posy+this.height/3*2+2);
+			}
+		}
+		
+		function KeySelectSprite(screen){
+			this.posx = 0;
+			this.posy = 146;
+			this.width = 40;
+			this.height = 40;
+			this.marginx = 14;
+			this.marginy = 29;
+			this.image = new Image();
+			this.image.src = './images/key_empty_sprite.png';
+			this.text = 'Select';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+				screen.font = '32px VT323';
+				screen.fillStyle = '#a06e50';
+				screen.textAlign = 'left';
+				screen.fillText('A', this.posx+this.marginx, this.posy+this.marginy);
+				screen.font = '32px VT323';
+				screen.fillStyle = '#ffffff';
+				screen.textAlign = 'left';
+				screen.fillText(this.text, this.posx+this.width+8, this.posy+this.height/3*2+2);
+			}
+		}
+		
+		function TextLineSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.text = 'Select';
+			this.size = '20';
+			
+			this.draw = function(){
+				screen.font = this.size+'px VT323';
+				screen.fillStyle = '#ffffff';
+				screen.textAlign = 'left';
+				screen.fillText(this.text, this.posx, this.posy);
+			}
+		}
+		
+		function UIBombSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 8;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/uibomb.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+			
+		}
+		
+		function BackgroundSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.image = new Image();
+			this.image.src = './images/background_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function StandardUboatBombSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 6;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/standard_uboat_bomb_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function SmallBubbleSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 8;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/small_bubble_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function LittleSmokeCloudSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 7;
+			this.height = 9;
+			this.image = new Image();
+			this.image.src = './images/little_smoke.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function LittlerSmokeCloudSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 9;
+			this.height = 9;
+			this.image = new Image();
+			this.image.src = './images/littler_smoke.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function MediumSmokeCloudSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 12;
+			this.height = 11;
+			this.image = new Image();
+			this.image.src = './images/medium_smoke.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function WoodPlankOneSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 26;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/wood_plank_one.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function WoodPlankTwoSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 26;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/wood_plank_two.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function WoodPlankThreeSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 26;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/wood_plank_three.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function WoodPlankFourSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 26;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/wood_plank_four.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function BigSmokeCloudSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 16;
+			this.height = 15;
+			this.image = new Image();
+			this.image.src = './images/big_smoke.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function MediumBubbleSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 8;
+			this.height = 8;
+			this.image = new Image();
+			this.image.src = './images/medium_bubble_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function BigBubbleSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 9;
+			this.height = 9;
+			this.image = new Image();
+			this.image.src = './images/big_bubble_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function BackgroundCloudSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 160;
+			this.height = 64;
+			this.image = new Image();
+			this.image.src = './images/background_cloud_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function playerBombSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 12;
+			this.height = 12;
+			this.image = new Image();
+			this.image.src = './images/player_bomb_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function StandardUboatSprite(screen){
+			this.posx = 0;
+			this.posy = 0;
+			this.width = 64;
+			this.height = 32;
+			this.image = new Image();
+			this.image.src = './images/standard_uboat_sprite.png';
+			
+			this.draw = function(){
+				screen.drawImage(this.image, this.posx, this.posy);
+			}
+		}
+		
+		function GameController(world){
+			
+			world.minettler.lyController.reset();
+			
+			var bgSprite = new BackgroundSprite(world.minettler.scrnController.screen);
+			
+			var backgroundLayer = new Layer(world);
+			
+			backgroundLayer.addSprite(bgSprite);
+			
+			world.minettler.lyController.addLayer(backgroundLayer);
+			
+			world.playerLives = PLAYER_LIVES;
+			
+			var boatsLayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(boatsLayer);
+			
+			var uiLayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(uiLayer);
+			
+			this.controllers = new Array();
+			
+			this.playerBoatController = undefined;
+			this.smokeEmitterController = undefined;
+			this.playerBombController = undefined;
+			this.woodPlankController = undefined;
+			this.explosionController = undefined;
+			this.backgroundCloudController = undefined;
+			this.uboatBombController = undefined;
+			this.smokeCloudController = undefined;
+			this.bubbleController = undefined;
+			this.uboatController = undefined;
+			this.uiController = undefined;
+			
+			window.addEventListener('keydown', this);
+			
+			this.gameState = 'ingame';
+			
+			this.do = function(){
+				for(controller of this.controllers){
+					controller.do();
+				}
+				
+				if(world.playerLives < 0 && this.gameState == 'ingame'){
+					this.endOfGame();
+				}
+			}
+			
+			this.reset = function(){
+				this.controllers = new Array();
+			}
+			
+			//KEYBOARD EVENTS ROUTER
+			this.handleEvent = function(event){
+				switch(event.key){
+					case 'ArrowLeft':
+						if(this.gameState == 'ingame'){
+							this.playerBoatController.movePlayerBoatToLeft();
+						}
+						break;
+					case 'ArrowRight':
+						if(this.gameState == 'ingame'){
+							this.playerBoatController.movePlayerBoatToRight();
+						}
+						break;
+					case 'a':
+						if(this.gameState == 'ingame'){
+							this.playerBombController.launchNewPlayerBombToLeft();
+						}else if(this.gameState == 'gameover'){
+							window.removeEventListener('keydown', this);
+							world.newgame();
+						}
+						break;
+					case 'z':
+						if(this.gameState == 'ingame'){
+							this.playerBombController.launchNewPlayerBombToRight();
+						}
+						break;
+				}
+			}
+			
+			this.endOfGame = function(){
+				this.gameState = 'gameover';
+				var newgameButton = new NewGameButton(world, 309, 268);
+				var selectButton = new InGameKeySelect(world, 8, 552, 'Select');
+				this.playerBoatController.explodePlayerBoat();
+				this.playerBombController.launchAllLastPlayerBombs();
+				this.uiController.removeAllUIBombs();
+				this.smokeEmitterController.removeAllSmokeEmitters();
+				this.woodPlankController.makePlanks();
+				
+				var explodesound = new PlayerBoatExplosionSound();
+				explodesound.play();
+			}
+			
+			this.addController = function(controller){
+				this.controllers.push(controller);
+			}
+			
+			this.addPlayerBoatController = function(controller){
+				this.addController(controller);
+				this.playerBoatController = controller;
+			}
+			
+			this.addSmokeEmitterController = function(controller){
+				this.addController(controller);
+				this.smokeEmitterController = controller;
+			}
+			
+			this.addPlayerBombController = function(controller){
+				this.addController(controller);
+				this.playerBombController = controller;
+			}
+			
+			this.addExplosionController = function(controller){
+				this.addController(controller);
+				this.explosionController = controller;
+			}
+
+			this.addUIController = function(controller){
+				this.addController(controller);
+				this.uiController = controller;
+			}
+			
+			this.addWoodPlankController = function(controller){
+				this.addController(controller);
+				this.woodPlankController = controller;
+			}
+			
+			this.addBackgroundCloudController = function(controller){
+				this.addController(controller);
+				this.backgroundCloudController = controller;
+			}
+			
+			this.addUboatBombController = function(controller){
+				this.addController(controller);
+				this.uboatBombController = controller;
+			}
+			
+			this.addSmokeCloudController = function(controller){
+				this.addController(controller);
+				this.smokeCloudController = controller;
+			}
+
+			this.addBubbleController = function(controller){
+				this.addController(controller);
+				this.bubbleController = controller;
+			}
+			
+			this.addUboatController = function(controller){
+				this.addController(controller);
+				this.uboatController = controller;
+			}
+			
+		}
+		
+		function AboutMenuController(world){
+			
+			world.minettler.lyController.reset();
+			
+			var backgroundLayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(backgroundLayer);
+			
+			var background = new MenuBackground(world, 0, 0);
+			
+			var UILayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(UILayer);
+			
+			var title = new Title(world, 280, 64);
+			
+			window.addEventListener('keydown', this);
+			
+			this.keyselect = new KeySelect(world, 8, 552, 'Back');
+			
+			var aboutParagraph = new AboutParagraph(world, 8, 110);
+			
+			this.controllers = new Array();
+			
+			this.do = function(){
+				for(controller of this.controllers){
+					controller.do();
+				}
+			}
+			
+			this.reset = function(){
+				this.controllers = new Array();
+			}
+			
+			//KEYBOARD EVENTS ROUTER
+			this.handleEvent = function(event){
+				switch(event.key){
+					case 'a':
+						window.removeEventListener('keydown', this);
+						world.mainMenu();
+						break;
+				}
+			}
+		}
+		
+		function MainMenuController(world){
+			
+			world.minettler.lyController.reset();
+			
+			var backgroundLayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(backgroundLayer);
+			
+			var background = new MenuBackground(world, 0, 0);
+			
+			var UILayer = new Layer(world);
+			
+			world.minettler.lyController.addLayer(UILayer);
+			
+			var title = new Title(world, 280, 64);
+			
+			window.addEventListener('keydown', this);
+			
+			this.controllers = new Array();
+			
+			this.buttonController = undefined;
+			
+			this.do = function(){
+				for(controller of this.controllers){
+					controller.do();
+				}
+			}
+			
+			this.reset = function(){
+				this.controllers = new Array();
+			}
+			
+			//KEYBOARD EVENTS ROUTER
+			this.handleEvent = function(event){
+				switch(event.key){
+					case 'ArrowUp':
+						this.buttonController.upChoice();
+						break;
+					case 'ArrowDown':
+						this.buttonController.downChoice();
+						break;
+					case 'a':
+						if(this.buttonController.actualChoice == 'play'){
+							window.removeEventListener('keydown', this);
+							world.newgame();
+						}else if(this.buttonController.actualChoice == 'about'){
+							window.removeEventListener('keydown', this);
+							world.aboutMenu();
+						}
+						break;
+				}
+			}
+			
+			this.addButtonController = function(controller){
+				this.controllers.push(controller);
+				this.buttonController = controller;
+			}
+			
+		}
+		
+		function ButtonController(world){
+			
+			this.buttons = new Array();
+			
+			this.actualChoice = 'play';
+			
+			this.playButton = new PlayButton(world, 300, 192);
+				
+			this.aboutButton = new AboutButton(world, 300, 320);
+			
+			this.keyarrowup = new KeyArrowUp(world, 8, 552);
+			
+			this.keyarrowdown = new KeyArrowDown(world, 180, 552);
+			
+			this.keyselect = new KeySelect(world, 378, 552, 'Select');
+			
+			this.buttons.push(this.playButton);
+			this.buttons.push(this.aboutButton);
+			
+			this.do = function(){
+				//
+			}
+			
+			this.upChoice = function(){
+				if(this.actualChoice == 'about'){
+					this.actualChoice = 'play';
+					this.playButton.setOn();
+					this.aboutButton.setOff();
+				}
+			}
+			
+			this.downChoice = function(){
+				if(this.actualChoice == 'play'){
+					this.actualChoice = 'about';
+					this.aboutButton.setOn();
+					this.playButton.setOff();
+				}
+			}
+			
+		}
+		
+		function PlayerBoatController(world){
+			
+			this.playerBoat = new PlayerBoat(world);
+			
+			this.do = function(){
+				if(this.playerBoat.state == 'left'){
+					this.playerBoat.moveToLeft();
+				}else if(this.playerBoat.state == 'right'){
+					this.playerBoat.moveToRight();
+				}
+			}
+			
+			this.explodePlayerBoat = function(){
+				world.minettler.lyController.layers[1].removeSprite(this.playerBoat.sprite);
+			}
+			
+			this.movePlayerBoatToLeft = function(){
+				if(this.playerBoat.state == 'right'){
+					if(this.playerBoat.speed > 1){
+						this.playerBoat.speed--;
+					}
+					else{
+						this.playerBoat.speed = 1;
+						this.playerBoat.state = 'stop';
+					}
+				}else if(this.playerBoat.state == 'stop'){
+					this.playerBoat.state = 'left';
+				}else if(this.playerBoat.speed < 4 && this.playerBoat.state == 'left'){
+					this.playerBoat.speed++;
+				}
+			}
+			
+			this.movePlayerBoatToRight = function(){
+				if(this.playerBoat.state == 'left'){
+					if(this.playerBoat.speed > 1){
+						this.playerBoat.speed--;
+					}else{
+						this.playerBoat.speed = 0;
+						this.playerBoat.state = 'stop';
+					}
+				}else if(this.playerBoat.state == 'stop'){
+					this.playerBoat.state = 'right';
+				}else if(this.playerBoat.speed < 4 && this.playerBoat.state == 'right'){
+					this.playerBoat.speed++;
+				}
+			}
+			
+		}
+		
+		function BackgroundCloudController(world){
+			
+			this.backgroundClouds = new Array();
+			
+			this.do = function(){
+					
+				var delclouds = new Array();
+
+				for(cloud of this.backgroundClouds){
+					if(cloud.posx == cloud.maxposx){
+						delclouds.push(cloud);
+					}
+				}
+				
+				if(delclouds.length != 0){
+					for(cloud of delclouds){
+						world.minettler.lyController.layers[1].removeSprite(cloud.sprite);
+						world.minettler.jstools.arrayRemove(this.backgroundClouds, cloud);
+					}
+				}
+				
+				while(this.backgroundClouds.length < 2){
+					this.makeNewBackgroundCloud();
+				}
+				
+				for(backgroundCloud of this.backgroundClouds){
+					backgroundCloud.move();
+				}
+				
+			}
+			
+			this.makeNewBackgroundCloud = function(){
+				
+				var cloudstate = 'right';
+				var cloudposx = 0-160;
+				var cloudposy = 10;
+				
+				if(this.backgroundClouds.length > 0){
+					if(this.backgroundClouds[this.backgroundClouds.length-1].state == 'right'){
+						cloudposx = 800+160;
+						cloudstate = 'left';
+						cloudposy = 94;
+					}
+				}
+				
+				var cloud = new BackgroundCloud(world, cloudstate, cloudposx, cloudposy);
+				
+				this.backgroundClouds.push(cloud);
+			}
+
+		}
+		
+		function UboatBombController(world){
+			
+			this.uboatsBombs = new Array();
+			
+			this.do = function(){
+				var delUboatsBombs = new Array();
+				for(uboat of world.mainController.uboatController.uboats){
+					if(uboat.bombTicks >= UBOAT_BOMB_RELOAD_TIME*60){
+						uboat.bombTicksSinceReloadTime++;
+						var minPlayerBoatPosx = world.mainController.playerBoatController.playerBoat.posx;
+						var maxPlayerBoatPosx = minPlayerBoatPosx+world.mainController.playerBoatController.playerBoat.sprite.width;
+						if(uboat.bombTicksSinceReloadTime == UBOAT_BOMB_TIME_SINCE_RELOAD_TIME*60){
+							this.launchNewUboatBomb(uboat);
+						}else if(uboat.posx > minPlayerBoatPosx && uboat.posx < maxPlayerBoatPosx){
+							this.launchNewUboatBomb(uboat);
+						}
+					}
+				}
+				
+				for(bomb of this.uboatsBombs){
+					bomb.move();
+					if(bomb.bubbleTicks >= bomb.bubbleTicksPeriod){
+						bomb.bubbleTicks = 0;
+						var bombBubble = new Bubble(world, bomb.sprite.width/2+bomb.posx, bomb.posy+bomb.sprite.height, 'small', 0.2);
+						world.mainController.bubbleController.bubbles.push(bombBubble);
+					}
+					
+					if(world.minettler.jstools.checkAABBCollision(world.mainController.playerBoatController.playerBoat, bomb) && world.mainController.gameState == 'ingame'){
+						world.playerLives--;
+						delUboatsBombs.push(bomb);
+						world.mainController.smokeEmitterController.smokeEmitters.push(new SmokeEmitter(world, bomb.posx-world.mainController.playerBoatController.playerBoat.sprite.posx, 0, 10, 10, 0, 0, 4, world.mainController.playerBoatController.playerBoat, 1));
+						world.mainController.explosionController.makeSmallExplosion(world.mainController.playerBoatController.playerBoat.sprite.posx+(bomb.posx-world.mainController.playerBoatController.playerBoat.sprite.posx), bomb.posy-4);
+					}
+				}
+				
+				if(delUboatsBombs.length != 0){
+					for(uboatBomb of delUboatsBombs){
+						world.minettler.lyController.layers[1].removeSprite(uboatBomb.sprite);
+						world.minettler.jstools.arrayRemove(this.uboatsBombs, uboatBomb);
+						var uboatBombExplosionSound = new UboatBombExplosionSound();
+						uboatBombExplosionSound.play();
+					}
+				}
+				
+			}
+			
+			this.launchNewUboatBomb = function(uboat){
+				uboat.bombTicks = 0;
+				uboat.bombTicksSinceReloadTime = 0;
+				this.uboatsBombs.push(new StandardUboatBomb(world, uboat.sprite.posx+uboat.sprite.width/2, uboat.sprite.posy+uboat.sprite.height/2));
+				var standardUboatBombLaunchingSound = new StandardUboatBombLaunchingSound();
+				standardUboatBombLaunchingSound.play();
+			}
+		}
+		
+		function SmokeEmitterController(world){
+			
+			this.smokeEmitters = new Array();
+			
+			this.do = function(){
+				for(emitter of this.smokeEmitters){
+					emitter.move();
+				}
+			}
+			
+			this.removeAllSmokeEmitters = function(){
+				this.smokeEmitters = new Array();
+			}
+			
+		}
+		
+		function SmokeCloudController(world){
+			
+			this.smokeClouds = new Array();
+			
+			this.do = function(){
+						
+				var delClouds = new Array();
+				
+				for(cloud of this.smokeClouds){
+					
+					if(typeof(cloud.ttl) == 'number'){
+						if(cloud.totalTicks >= cloud.ttl){
+							delClouds.push(cloud);
+						}
+					}
+					
+					cloud.move();
+				}
+				
+				if(delClouds.length != 0){
+					for(cloud of delClouds){
+						world.minettler.lyController.layers[1].removeSprite(cloud.sprite);
+						world.minettler.jstools.arrayRemove(this.smokeClouds, cloud);
+					}
+				}
+			}
+
+		}
+		
+		function ExplosionController(world){
+			
+			this.explosions = new Array();
+			
+			this.do = function(){
+						
+				var delExplosions = new Array();
+				
+				for(explosion of this.explosions){
+					
+					if(typeof(explosion.ttl) == 'number'){
+						if(explosion.totalTicks >= explosion.ttl){
+							delExplosions.push(explosion);
+						}
+					}
+					
+					explosion.move();
+				}
+				
+				if(delExplosions.length != 0){
+					for(explosion of this.explosions){
+						world.minettler.lyController.layers[1].removeSprite(explosion.sprite);
+						world.minettler.jstools.arrayRemove(this.explosions, explosion);
+					}
+				}
+			}
+			
+			this.makeSmallExplosion = function(posx, posy){
+				this.explosions.push(new SmallExplosion(world, posx, posy));
+			}
+
+		}
+		
+		function WoodPlankController(world){
+			
+			this.woodplanks = new Array();
+			
+			this.do = function(){
+				for(plank of this.woodplanks){
+					plank.move();
+				}
+			}
+			
+			this.makePlanks = function(){
+				this.woodplanks.push(new WoodPlank(world, world.mainController.playerBoatController.playerBoat.posx, world.waterline));
+				this.woodplanks.push(new WoodPlank(world, world.mainController.playerBoatController.playerBoat.posx+20, world.waterline));
+				this.woodplanks.push(new WoodPlank(world, world.mainController.playerBoatController.playerBoat.posx+50, world.waterline));
+				this.woodplanks.push(new WoodPlank(world, world.mainController.playerBoatController.playerBoat.posx+60, world.waterline));
+			}
+		}
+		
+		function BubbleController(world){
+			
+			this.bubbles = new Array();
+			
+			this.do = function(){
+				
+				var delBubbles = new Array();
+				
+				for(bubble of this.bubbles){
+					
+					if(typeof(bubble.ttl) == 'number'){
+						if(bubble.totalTicks >= bubble.ttl){
+							delBubbles.push(bubble);
+						}
+					}
+					
+					if(bubble.posy <= bubble.minposy){
+						delBubbles.push(bubble);
+					}
+					
+					bubble.move();
+				}
+				
+				if(delBubbles.length != 0){
+					for(bubble of delBubbles){
+						world.minettler.lyController.layers[1].removeSprite(bubble.sprite);
+						world.minettler.jstools.arrayRemove(this.bubbles, bubble);
+					}
+				}
+			}
+			
+			this.makeNewBubbleExplosion = function(posx, posy, width, height, force, direction, nbofbubbles){
+				var bubbles = new Array();
+				var bubble_size = 'small';
+				var bubble_ttl = 1;
+				var counter = 0;
+				
+				while(counter < nbofbubbles){
+					
+					switch(world.minettler.jstools.getRndInteger(0, 2)){
+						case 0:
+							bubble_size = 'small';
+							break;
+						case 1:
+							bubble_size = 'medium';
+							break;
+						case 2:
+							bubble_size = 'big';
+							break;
+					}
+					
+					switch(world.minettler.jstools.getRndInteger(0, 4)){
+						case 0:
+							bubble_ttl = 0.5;
+							break;
+						case 1:
+							bubble_ttl = 0.7;
+							break;
+						case 2:
+							bubble_ttl = 1;
+							break;
+						case 3:
+							bubble_ttl = 0.3;
+							break;
+						case 4:
+							bubble_ttl = 0.2;
+							break;
+					}
+					
+					newBubble = new Bubble(world, world.minettler.jstools.getRndInteger(posx, posx+width), world.minettler.jstools.getRndInteger(posy, posy+height), bubble_size, bubble_ttl);
+					this.bubbles.push(newBubble);
+					counter++;
+				}
+			}
+		}
+		
+		function UboatController(world){
+			
+			this.uboats = new Array();
+			
+			this.do = function(){
+				
+				while(this.uboats.length < 3){
+					this.makeNewUboat();
+				}
+				
+				for(uboat of this.uboats){
+					uboat.move();
+				}
+			}
+			
+			this.makeNewUboat = function(){
+				
+				var state = 'right';
+				var posx = 0;
+				var posy = 264;
+				
+				if(this.uboats.length >= 1){
+					
+					var freeUboatPosy = undefined;
+					
+					var availablesUboatPosy = new Array(264, 332, 500);
+					
+					var freeUboatPosy = undefined;
+					
+					var isAvailable = true;
+					
+					var i = 0;
+					
+					while(i < availablesUboatPosy.length){
+						
+						var j = 0;
+						
+						while(j < this.uboats.length){
+							if(availablesUboatPosy[i] == this.uboats[j].posy){
+								isAvailable = false;
+								j = this.uboats.length;
+							}
+							else{
+								j++;
+							}
+							
+						}
+						
+						if(isAvailable){
+							freeUboatPosy = availablesUboatPosy[i];
+							i = availablesUboatPosy.length;
+						}
+						else{
+							isAvailable = true;
+							i++;
+						}
+					};
+					
+					switch(freeUboatPosy){
+						case 264:
+							state = 'right';
+							posx = 0;
+							posy = 264;
+							break;
+						case 332:
+							state = 'left';
+							posx = 700;
+							posy = 332;
+							break;
+						case 500:
+							state = 'right';
+							posx = 0;
+							posy = 500;
+							break;
+					}
+					
+				}
+				
+				this.uboats.push(new StandardUboat(world, state, posx, posy));
+			}
+		}
+		
+		function PlayerBombController(world){
+			
+			this.playerBombs = new Array();
+			this.playerBombsLeft = new Array();
+			this.playerBombsRight = new Array();
+			
+			this.ammo_reload_ticks = AMMO_RELOAD_TIME*20;
+			this.current_ammo_reload_ticks = 20;
+			
+			this.do = function(){
+				
+				if(this.current_ammo_reload_ticks < 20){
+					this.current_ammo_reload_ticks++;
+				}
+				
+				var delPlayerBombs = new Array();
+				
+				var delUboats = new Array();
+				
+				var delUboatsBombs = new Array();
+				
+				for(playerBomb of this.playerBombs){
+					
+					if(playerBomb.posy == playerBomb.maxposy){
+						delPlayerBombs.push(playerBomb);
+					}
+					
+					for(uboat of world.mainController.uboatController.uboats){
+						if(world.minettler.jstools.checkAABBCollision(playerBomb, uboat)){
+							world.mainController.bubbleController.makeNewBubbleExplosion(uboat.posx, uboat.posy, uboat.sprite.width, uboat.sprite.height, 0, 0, 20);
+							delPlayerBombs.push(playerBomb);
+							delUboats.push(uboat);
+							world.playerScore+=10;
+							world.mainController.uiController.uiScore.setScore(world.playerScore);
+						}
+					}
+					
+					for(uboatBomb of world.mainController.uboatBombController.uboatsBombs){
+						if(world.minettler.jstools.checkAABBCollision(playerBomb, uboatBomb)){
+							world.mainController.bubbleController.makeNewBubbleExplosion(uboatBomb.posx, uboatBomb.posy, uboatBomb.sprite.width, uboatBomb.sprite.height, 0, 0, 4);
+							delUboatsBombs.push(uboatBomb);
+							delPlayerBombs.push(playerBomb);
+							world.playerScore+=20;
+							world.mainController.uiController.uiScore.setScore(world.playerScore);
+						}
+					}
+				}
+				
+				if(delPlayerBombs.length != 0){
+					for(bomb of delPlayerBombs){
+						this.removePlayerBomb(bomb);
+					}
+				}
+				
+				if(delUboats.length != 0){
+					for(uboat of delUboats){
+						world.minettler.lyController.layers[1].removeSprite(uboat.sprite);
+						world.minettler.jstools.arrayRemove(world.mainController.uboatController.uboats, uboat);
+						var uboatDestroySound = new StandardUboatExplosionSound();
+						uboatDestroySound.play();
+					}
+				}
+				
+				if(delUboatsBombs.length != 0){
+					for(uboatBomb of delUboatsBombs){
+						world.minettler.lyController.layers[1].removeSprite(uboatBomb.sprite);
+						world.minettler.jstools.arrayRemove(world.mainController.uboatBombController.uboatsBombs, uboatBomb);
+						var uboatBombExplosionSound = new UboatBombExplosionSound();
+						uboatBombExplosionSound.play();
+					}
+				}
+				
+				for(playerBomb of this.playerBombs){
+					playerBomb.moveToDown();
+				}
+				
+			}
+			
+			this.launchAllLastPlayerBombs = function(){
+				var amountOfBombsLeft = 0;
+				var amountOfBombsRight = 0;
+				
+				var counter = 0;
+				
+				for(bomb of world.mainController.uiController.leftSideUIBombs){
+					if(bomb.isVisible){
+						counter++;
+					}
+					
+				}
+				
+				amountOfBombsLeft = counter;
+				counter = 0;
+				
+				for(bomb of world.mainController.uiController.rightSideUIBombs){
+					if(bomb.isVisible){
+						counter++;
+					}
+				}
+				
+				amountOfBombsRight = counter;
+				counter = 0;
+				
+				while(counter < amountOfBombsLeft){
+					var randx = world.minettler.jstools.getRndInteger(world.mainController.playerBoatController.playerBoat.posx, world.mainController.playerBoatController.playerBoat.posx+world.mainController.playerBoatController.playerBoat.width/2);
+					var randy = world.minettler.jstools.getRndInteger(world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height, world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height+16);
+					var playerBomb = new PlayerBomb(world, randx, randy, 'left');
+					this.playerBombs.push(playerBomb);
+					counter++;
+				}
+				
+				counter = 0;
+				
+				while(counter < amountOfBombsRight){
+					var randx = world.minettler.jstools.getRndInteger(world.mainController.playerBoatController.playerBoat.posx+world.mainController.playerBoatController.playerBoat.width/2, world.mainController.playerBoatController.playerBoat.posx+world.mainController.playerBoatController.playerBoat.width);
+					var randy = world.minettler.jstools.getRndInteger(world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height, world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height+16);
+					var playerBomb = new PlayerBomb(world, randx, randy, 'right');
+					this.playerBombs.push(playerBomb);
+					counter++;
+				}
+				
+			}
+			
+			this.launchNewPlayerBombToLeft = function(){
+				if(this.playerBombsLeft.length < TOTAL_LEFT_AMMO && this.current_ammo_reload_ticks == this.ammo_reload_ticks){
+					var playerBomb = new PlayerBomb(world, world.mainController.playerBoatController.playerBoat.posx, world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height, 'left');
+					this.playerBombs.push(playerBomb);
+					this.playerBombsLeft.push(playerBomb);
+					this.current_ammo_reload_ticks = 0;
+					var sound = new LaunchPlayerBombSound0();
+					sound.play();
+					world.mainController.uiController.removeUIBomb('left');
+				}
+			}
+			
+			this.launchNewPlayerBombToRight = function(){
+				if(this.playerBombsRight.length < TOTAL_RIGHT_AMMO && this.current_ammo_reload_ticks == this.ammo_reload_ticks){
+					var playerBomb = new PlayerBomb(world, world.mainController.playerBoatController.playerBoat.posx+world.mainController.playerBoatController.playerBoat.width, world.mainController.playerBoatController.playerBoat.posy+world.mainController.playerBoatController.playerBoat.height, 'right');
+					this.playerBombs.push(playerBomb);
+					this.playerBombsRight.push(playerBomb);
+					this.current_ammo_reload_ticks = 0;
+					var sound = new LaunchPlayerBombSound1();
+					sound.play();
+					world.mainController.uiController.removeUIBomb('right');
+				}
+			}
+			
+			this.removePlayerBomb = function(bomb){
+				
+				world.minettler.lyController.layers[1].removeSprite(bomb.sprite);
+				
+				world.minettler.jstools.arrayRemove(this.playerBombs, bomb);
+				
+				switch(bomb.boatSide){
+					case 'left':
+						world.minettler.jstools.arrayRemove(this.playerBombsLeft, bomb);
+					break;
+					case 'right':
+						world.minettler.jstools.arrayRemove(this.playerBombsRight, bomb);
+					break;
+				}
+				
+				if(world.mainController.gameState == 'ingame'){
+					world.mainController.uiController.addUIBomb(bomb.boatSide);
+				}
+			}
+		}
+		
+		function UIController(world){
+			
+			this.uiBombs = new Array();
+			this.leftSideUIBombs = new Array();
+			this.rightSideUIBombs = new Array();
+			
+			this.uiScore = new UIScore(world, 32, 38);
+			
+			var bomb = new UIBomb(world, 6, 185, 5);
+			this.leftSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 16, 185, 4);
+			this.leftSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 26, 185, 3);
+			this.leftSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 11, 177, 2);
+			this.leftSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 21, 177, 1);
+			this.leftSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			
+			var bomb = new UIBomb(world, 46, 185, 5);
+			this.rightSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 56, 185, 4);
+			this.rightSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 66, 185, 3);
+			this.rightSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 51, 177, 2);
+			this.rightSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			var bomb = new UIBomb(world, 61, 177, 1);
+			this.rightSideUIBombs.push(bomb);
+			this.uiBombs.push(bomb);
+			
+			this.do = function(){
+				if(world.playerScore == 0){
+					this.uiScore.setScore(0);
+				}
+			}
+			
+			this.removeAllUIBombs = function(){
+				for(bomb of this.uiBombs){
+					bomb.setInvisible();
+				}
+			}
+			
+			this.addUIBomb = function(side){
+				var bombs = this.rightSideUIBombs;
+				
+				switch(side){
+					case 'left':
+						bombs = this.leftSideUIBombs;
+						break;
+				}
+				
+				var topBomb = undefined;
+				
+				for(uiBomb of bombs){
+					if(uiBomb.position > 0 && uiBomb.isVisible == false){
+						topBomb = uiBomb;
+					}
+				}
+				for(uiBomb of bombs){
+					if(uiBomb.position > topBomb.position && uiBomb.isVisible == false){
+						topBomb = uiBomb;
+					}
+				}
+				
+				
+				topBomb.setVisible();
+				
+			}
+			
+			this.removeUIBomb = function(side){
+				
+				var bombs = this.rightSideUIBombs;
+				
+				switch(side){
+					case 'left':
+						bombs = this.leftSideUIBombs;
+						break;
+				}
+				
+				var topBomb = undefined;
+				
+				for(uiBomb of bombs){
+					if(topBomb == undefined){
+						topBomb = uiBomb;
+					}else if(uiBomb.position < topBomb.position && uiBomb.isVisible == true){
+						topBomb = uiBomb;
+					}
+				}
+				
+				topBomb.setInvisible();
+			}
+		}
+		
+		function ScreenController(){
+			this.canvas = document.getElementById('screen');
+			this.screen = this.canvas.getContext('2d');
+			this.lyController = null;
+			
+			this.draw = function(){
+				for(layer of this.lyController.layers){
+					for(sprite of layer.sprites){
+						sprite.draw();
+					}
+				}
+			}
+			
+		}
+		
+		function Layer(world){
+
+			this.sprites = new Array();
+			
+			this.addSprite = function(sprite){
+				this.sprites.push(sprite);
+			}
+			
+			this.removeSprite = function(sprite){
+				world.minettler.jstools.arrayRemove(this.sprites, sprite);
+			}
+		}
+		
+		function LayerController(){
+			this.layers = new Array();
+			
+			this.addLayer = function(layer){
+				this.layers.push(layer);
+			}
+			
+			this.reset = function(){
+				this.layers = new Array();
+			}
+			
+		}
+		
+		function SmallExplosion(world, posx, posy){
+			this.sprite = new SmallExplosionSprite(world.minettler.scrnController.screen);
+			this.posx, this.sprite.posx = posx;
+			this.posy, this.sprite.posy = posy;
+			this.totalTicks = 0;
+			this.ttl = 2;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				this.totalTicks++;
+			}
+		}
+		
+		function PlayerBoat(world){
+			this.sprite = new PlayerBoatSprite(world.minettler.scrnController.screen);
+			this.state = 'stop';
+			this.speed = 1;
+			this.width = this.sprite.width;
+			this.height = this.sprite.height;
+			this.world = world;
+			this.posx = 0;
+			this.posy = this.world.waterline-this.height;
+			this.maxx = this.world.width-this.sprite.width;
+			this.minx = this.posx;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.moveToRight = function(){
+				if(this.posx < this.maxx){
+					this.posx = this.posx+this.speed;
+					this.sprite.posx = this.sprite.posx+this.speed;
+					this.moveAllUIBombs('right', this.speed);
+				}
+			}
+			
+			this.moveToLeft = function(){
+				if(this.posx > this.minx){
+					this.posx = this.posx-this.speed;
+					this.sprite.posx = this.sprite.posx-this.speed;
+					this.moveAllUIBombs('left', this.speed);
+				}
+			}
+			
+			this.moveAllUIBombs = function(direction, speed){
+					for(uiBomb of world.mainController.uiController.uiBombs){
+						switch(direction){
+							case 'right':
+								uiBomb.moveRight(speed);
+								break;
+							case 'left':
+								uiBomb.moveLeft(speed);
+								break;
+						}
+					}
+			}
+		}
+		
+		function PlayButton(world, posx, posy){
+			this.sprite = new PlayButtonSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.setOn = function(){
+				this.sprite.isOn = true;
+			}
+			
+			this.setOff = function(){
+				this.sprite.isOn = false;
+			}
+
+		}
+		
+		function NewGameButton(world, posx, posy){
+			this.sprite = new NewGameButtonSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[2].addSprite(this.sprite);
+
+			this.sprite.isOn = true;
+
+		}
+		
+		function AboutButton(world, posx, posy){
+			this.sprite = new AboutButtonSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.setOn = function(){
+				this.sprite.isOn = true;
+			}
+			
+			this.setOff = function(){
+				this.sprite.isOn = false;
+			}
+
+		}
+		
+		function Title(world, posx, posy){
+			this.sprite = new TitleSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+		}
+		
+		function KeySelect(world, posx, posy, text){
+			this.sprite = new KeySelectSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.text = text;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+		}
+		
+		function InGameKeySelect(world, posx, posy, text){
+			this.sprite = new KeySelectSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.text = text;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[2].addSprite(this.sprite);
+		}
+		
+		function KeyArrowUp(world, posx, posy){
+			this.sprite = new KeyArrowUpSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+		}
+		
+		function KeyArrowDown(world, posx, posy){
+			this.sprite = new KeyArrowDownSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+		}
+		
+		function MenuBackground(world, posx, posy){
+			this.sprite = new MenuBackgroundSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[0].addSprite(this.sprite);
+			
+		}
+		
+		function BackgroundCloud(world, state, posx, posy){
+			this.state = state;
+			this.sprite = new BackgroundCloudSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.maxposx = 0;
+			this.minposx = 0;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			if(this.state == 'right'){
+				this.maxposx = world.width + this.sprite.width;
+				this.minposx = 0;
+			}
+			else{
+				this.maxposx = 0-this.sprite.width;
+				this.minposx = 800;
+			}
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				if(this.state == 'right'){
+					this.posx++;
+					this.sprite.posx++;
+				}
+				else{
+					this.posx--;
+					this.sprite.posx--;
+				}
+			}
+		}
+		
+		function StandardUboat(world, state, posx, posy){
+			this.state = state;
+			this.sprite = new StandardUboatSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.maxposx = 0;
+			this.minposx = 0;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.bombTicks = 0;
+			this.bombTicksSinceReloadTime = 0;
+			
+			this.speed = world.minettler.jstools.getRndInteger(2, 4);
+			
+			if(this.state == 'right'){
+				this.maxposx = world.width + this.sprite.width;
+				this.minposx = 0;
+			}
+			else{
+				this.maxposx = 0-this.sprite.width;
+				this.minposx = 800;
+			}
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				this.bombTicks++;
+				if(this.posx > this.maxposx && this.state == 'right'){
+					this.state = 'left';
+					this.maxposx = 0-this.sprite.width;
+					this.minposx = 800;
+				}
+				
+				if(this.posx < this.maxposx && this.state == 'left'){
+					this.state = 'right';
+					this.maxposx = world.width + this.sprite.width;
+					this.minposx = 0;
+				}
+				
+				if(this.state == 'right'){
+					this.posx+=this.speed;
+					this.sprite.posx+=this.speed;
+				}
+				else{
+					this.posx-=this.speed;
+					this.sprite.posx-=this.speed;
+				}
+			}
+		}
+		
+		function SmokeCloud(world, posx, posy, size, ttl){
+			this.totalTicks = 0;
+			this.timeOfUp = world.minettler.jstools.getRndInteger(1, 4);
+			this.timeOfLeft = world.minettler.jstools.getRndInteger(1, 3);
+			this.timeOfRight = world.minettler.jstools.getRndInteger(1, 4);
+			this.currentTicksOfTime = 0;
+			this.currentDirection = 'right';
+			this.ttl = ttl;
+			
+			if(typeof(ttl) == 'number'){
+				this.ttl = Math.floor(ttl*60);
+			}
+			
+			this.sprite = undefined;
+			
+			switch(size){
+				case 'big':
+					this.sprite = new BigSmokeCloudSprite(world.minettler.scrnController.screen);
+				break;
+				case 'medium':
+					this.sprite = new MediumSmokeCloudSprite(world.minettler.scrnController.screen);
+				break;
+				case 'littler':
+					this.sprite = new LittlerSmokeCloudSprite(world.minettler.scrnController.screen);
+					break;
+				case 'little':
+					this.sprite = new LittleSmokeCloudSprite(world.minettler.scrnController.screen);
+					break;
+				default:
+					this.sprite = new BigSmokeCloudSprite(world.minettler.scrnController.screen);
+			}
+			
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.minposy = 201;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				
+				this.totalTicks++;
+				
+				if(this.currentTicksOfTime <= this.currentMaxTicksOfTime){
+					switch(this.currentDirection){
+						case 'up':
+							this.moveUp();
+							break;
+						case 'left':
+							this.moveLeft();
+							break;
+						case 'right':
+							this.moveRight();
+							break;
+					}
+					this.currentTicksOfTime++;
+				}
+				else{
+				
+					this.currentTicksOfTime = 0;
+					
+					switch(world.minettler.jstools.getRndInteger(0, 2)){
+						case 0:
+							this.currentDirection = 'up';
+							this.currentMaxTicksOfTime = this.timeOfUp;
+							break;
+						case 1:
+							this.currentDirection = 'left';
+							this.currentMaxTicksOfTime = this.timeOfLeft;
+							break;
+						case 2:
+							this.currentDirection = 'right';
+							this.currentMaxTicksOfTime = this.timeOfRight;
+							break;
+					}
+				}
+				
+			}
+			
+			this.moveLeft = function(){
+				this.posx--;
+				this.sprite.posx--;
+			}
+
+			this.moveRight = function(){
+				this.posx++;
+				this.sprite.posx++;
+			}
+			
+			this.moveUp = function(){
+				this.posy--;
+				this.sprite.posy--;
+			}
+			
+			this.moveDown = function(){
+				this.posy++;
+				this.sprite.posy++;
+			}
+			
+		}
+		
+		function Bubble(world, posx, posy, size, ttl){
+			this.totalTicks = 0;
+			this.timeOfUp = world.minettler.jstools.getRndInteger(1, 4);
+			this.timeOfLeft = world.minettler.jstools.getRndInteger(1, 3);
+			this.timeOfRight = world.minettler.jstools.getRndInteger(1, 4);
+			this.currentTicksOfTime = 0;
+			this.currentDirection = 'right';
+			this.ttl = 'endless';
+			
+			if(typeof(ttl) == 'number'){
+				this.ttl = Math.floor(ttl*60);
+			}
+			
+			this.sprite = undefined;
+			
+			switch(size){
+				case 'big':
+					this.sprite = new BigBubbleSprite(world.minettler.scrnController.screen);
+				break;
+				case 'medium':
+					this.sprite = new MediumBubbleSprite(world.minettler.scrnController.screen);
+				break;
+				case 'small':
+					this.sprite = new SmallBubbleSprite(world.minettler.scrnController.screen);
+					break;
+				default:
+					this.sprite = new BigBubbleSprite(world.minettler.scrnController.screen);
+			}
+			
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.minposy = 201;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				
+				this.totalTicks++;
+				
+				if(this.currentTicksOfTime <= this.currentMaxTicksOfTime){
+					switch(this.currentDirection){
+						case 'up':
+							this.moveUp();
+							break;
+						case 'left':
+							this.moveLeft();
+							break;
+						case 'right':
+							this.moveRight();
+							break;
+					}
+					this.currentTicksOfTime++;
+				}
+				else{
+				
+					this.currentTicksOfTime = 0;
+					
+					switch(world.minettler.jstools.getRndInteger(0, 2)){
+						case 0:
+							this.currentDirection = 'up';
+							this.currentMaxTicksOfTime = this.timeOfUp;
+							break;
+						case 1:
+							this.currentDirection = 'left';
+							this.currentMaxTicksOfTime = this.timeOfLeft;
+							break;
+						case 2:
+							this.currentDirection = 'right';
+							this.currentMaxTicksOfTime = this.timeOfRight;
+							break;
+					}
+				}
+				
+			}
+			
+			this.moveLeft = function(){
+				this.posx--;
+				this.sprite.posx--;
+			}
+
+			this.moveRight = function(){
+				this.posx++;
+				this.sprite.posx++;
+			}
+			
+			this.moveUp = function(){
+				this.posy--;
+				this.sprite.posy--;
+			}
+			
+			this.moveDown = function(){
+				this.posy++;
+				this.sprite.posy++;
+			}
+
+		}
+		
+		function AboutParagraph(world, posx, posy){
+			this.posx = posx;
+			this.posy = posy;
+			
+			this.firstTitleSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.firstTitleSprite.text = 'About the game:';
+			this.firstTitleSprite.size = '24';
+			this.firstTitleSprite.posx = this.posx;
+			this.firstTitleSprite.posy = this.posy;
+			
+			this.firstLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.firstLineSprite.text = 'Minettler is a basic SinkSub inspired game, make with pure HTML5 and JavaScript.';
+			this.firstLineSprite.posx = this.posx;
+			this.firstLineSprite.posy = this.firstTitleSprite.posy+24;
+			
+			this.secondTitleSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.secondTitleSprite.text = 'Controls:';
+			this.secondTitleSprite.size = '24';
+			this.secondTitleSprite.posx = this.posx;
+			this.secondTitleSprite.posy = this.firstLineSprite.posy+48;
+			
+			this.secondLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.secondLineSprite.text = 'Use the arrow left key to move boat to left';
+			this.secondLineSprite.posx = this.posx;
+			this.secondLineSprite.posy = this.secondTitleSprite.posy+24;
+			
+			this.thirdLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.thirdLineSprite.text = 'Use the arrow right key to move boat to right';
+			this.thirdLineSprite.posx = this.posx;
+			this.thirdLineSprite.posy = this.secondLineSprite.posy+24;
+			
+			this.fourLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.fourLineSprite.text = 'Use the a key to launch a bomb from the left boat side';
+			this.fourLineSprite.posx = this.posx;
+			this.fourLineSprite.posy = this.thirdLineSprite.posy+24;
+			
+			this.fiveLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.fiveLineSprite.text = 'Use the z key to launch a bomb from the right boat side';
+			this.fiveLineSprite.posx = this.posx;
+			this.fiveLineSprite.posy = this.fourLineSprite.posy+24;
+			
+			this.thirdTitleSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.thirdTitleSprite.text = 'License of Minettler:';
+			this.thirdTitleSprite.size = '24';
+			this.thirdTitleSprite.posx = this.posx;
+			this.thirdTitleSprite.posy = this.fiveLineSprite.posy+48;
+			
+			this.sixLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.sixLineSprite.text = 'Minettler is a free software in the public domain, you can download, study,';
+			this.sixLineSprite.posx = this.posx;
+			this.sixLineSprite.posy = this.thirdTitleSprite.posy+24;
+			
+			this.sevenLineSprite = new TextLineSprite(world.minettler.scrnController.screen);
+			this.sevenLineSprite.text = 'use and modify it freely. Enjoy !';
+			this.sevenLineSprite.posx = this.posx;
+			this.sevenLineSprite.posy = this.sixLineSprite.posy+24;
+			
+			world.minettler.lyController.layers[1].addSprite(this.firstTitleSprite);
+			world.minettler.lyController.layers[1].addSprite(this.firstLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.secondTitleSprite);
+			world.minettler.lyController.layers[1].addSprite(this.secondLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.thirdLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.fourLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.fiveLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.thirdTitleSprite);
+			world.minettler.lyController.layers[1].addSprite(this.sixLineSprite);
+			world.minettler.lyController.layers[1].addSprite(this.sevenLineSprite);
+		}
+		
+		function PlayerBomb(world, posx, posy, boatSide){
+			this.sprite = new playerBombSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.maxposy = world.height-this.sprite.height;
+			this.boatSide = boatSide;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.moveToDown = function(){
+				this.posy++;
+				this.sprite.posy++;
+			}
+		}
+		
+		function WoodPlank(world, posx, posy){
+			
+			var randomSprite = world.minettler.jstools.getRndInteger(0, 3);
+			var randomFloatingSpeed = world.minettler.jstools.getRndInteger(10, 30);
+			
+			switch(randomSprite){
+				case 0:
+					this.sprite = new WoodPlankOneSprite(world.minettler.scrnController.screen);
+					break;
+				case 1:
+					this.sprite = new WoodPlankTwoSprite(world.minettler.scrnController.screen);
+					break;
+				case 2:
+					this.sprite = new WoodPlankThreeSprite(world.minettler.scrnController.screen);
+					break;
+				case 3:
+					this.sprite = new WoodPlankFourSprite(world.minettler.scrnController.screen);
+					break;
+			}
+			
+			this.posx = posx;
+			this.posy = posy-this.sprite.height/2;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.maxposx = world.width-this.sprite.width;
+			this.minposx = 0;
+			
+			this.state = 'down';
+			
+			this.ticks = 0;
+			this.actualFrameTicks = 0;
+			this.frameTicks = 10;
+			this.middleStateTicks = 4*this.frameTicks;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				
+				if(this.state == 'down'){
+					
+					if(this.ticks == this.middleStateTicks){
+						this.ticks = 0;
+						this.state = 'up';
+					}else{
+						if(this.actualFrameTicks == 0){
+							this.posy++;
+							this.sprite.posy++;
+						}
+					}
+		
+				}else{
+					
+					if(this.ticks == this.middleStateTicks){
+						this.ticks = 0;
+						this.state = 'down';
+					}else{
+						if(this.actualFrameTicks == 0){
+							this.posy--;
+							this.sprite.posy--;
+						}
+					}
+		
+				}
+				
+				this.actualFrameTicks++;
+				
+				if(this.actualFrameTicks == this.frameTicks){
+					this.actualFrameTicks = 0;
+				}
+				
+				this.ticks++;
+			}
+		}
+		
+		function UIBomb(world, posx, posy, position){
+			this.sprite = new UIBombSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.isVisible = true;
+			this.position = position;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.moveRight = function(speed){
+				this.posx = this.posx+speed;
+				this.sprite.posx = this.sprite.posx+speed;
+			}
+			
+			this.moveLeft = function(speed){
+				this.posx = this.posx-speed;
+				this.sprite.posx = this.sprite.posx-speed;
+			}
+			
+			this.setVisible = function(){
+				world.minettler.lyController.layers[1].addSprite(this.sprite);
+				this.isVisible = true;
+			}
+			
+			this.setInvisible = function(){
+				world.minettler.lyController.layers[1].removeSprite(this.sprite);
+				this.isVisible = false;
+			}
+			
+		}
+		
+		function UIScore(world, posx, posy){
+			this.sprite = new UIScoreSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			
+			world.minettler.lyController.layers[2].addSprite(this.sprite);
+			
+			this.setScore = function(score){
+				this.sprite.score = score;
+			}
+			
+		}
+		
+		function StandardUboatBomb(world, posx, posy){
+			this.sprite = new StandardUboatBombSprite(world.minettler.scrnController.screen);
+			this.posx = posx;
+			this.posy = posy;
+			this.sprite.posx = this.posx;
+			this.sprite.posy = this.posy;
+			this.maxposy = 201;
+			this.bubbleTicks = 0;
+			this.bubbleTicksPeriod = world.minettler.jstools.getRndInteger(4, 8);
+			
+			this.floatingState = undefined;
+			this.floatingTimeAmplitude = 0.2;
+			this.floatingAmplitudePixels = 2;
+			this.floatingPeriodTicks = this.floatingTimeAmplitude*60;
+			this.actualPeriod = 0;
+			this.actualFloatingTicks = 0;
+			
+			world.minettler.lyController.layers[1].addSprite(this.sprite);
+			
+			this.move = function(){
+				
+				this.bubbleTicks++;
+				
+				if(this.posy >= this.maxposy){
+					this.posy-=2;
+					this.sprite.posy-=2;
+				}
+				else{
+					this.actualFloatingTicks++;
+					if(this.floatingState == undefined){
+						this.floatingState = 'down';
+					}
+					
+					if(this.floatingState == 'down'){
+						if(this.actualFloatingTicks == this.floatingPeriodTicks){
+							this.moveDown();
+							this.actualFloatingTicks = 0;
+							this.actualPeriod++;
+							
+							if(this.actualPeriod >= this.floatingAmplitudePixels){
+								this.floatingState = 'up';
+								this.actualPeriod = 0;
+							}
+						}
+					}
+					
+					if(this.floatingState == 'up'){
+						if(this.actualFloatingTicks == this.floatingPeriodTicks){
+							this.moveUp();
+							this.actualFloatingTicks = 0;
+							this.actualPeriod++;
+							
+							if(this.actualPeriod >= this.floatingAmplitudePixels){
+								this.floatingState = 'down';
+								this.actualPeriod = 0;
+							}
+						}
+					}
+				}
+			}
+			
+			this.moveUp = function(){
+				this.posy--;
+				this.sprite.posy--;
+			}
+			
+			this.moveDown = function(){
+				this.posy++;
+				this.sprite.posy++;
+			}
+		}
+		
+		function SmokeEmitter(world, marginx, marginy, width, height, force, direction, nbOfClouds, object, emitTicks){
+				this.world = world;
+				this.posx = object.posx+marginx;
+				this.posy = object.posy+marginy;
+				this.object = object;
+				this.width = width;
+				this.height = height;
+				this.force = force;
+				this.direction = direction;
+				this.actualTicks = 0;
+				this.emitTicks = emitTicks*60;
+				
+				this.emit = function(){
+					var clouds = new Array();
+					var size = 'little';
+					var ttl = 1;
+					var counter = 0;
+					
+					while(counter < nbOfClouds){
+						switch(world.minettler.jstools.getRndInteger(0, 1)){
+							case 0:
+								size = 'little';
+								break;
+							case 1:
+								size = 'littler';
+								break;
+							case 2:
+								size = 'medium';
+								break;
+							case 3:
+								size = 'medium';
+								break;
+						}
+						
+						switch(world.minettler.jstools.getRndInteger(0, 4)){
+							case 0:
+								ttl = 0.5;
+								break;
+							case 1:
+								ttl = 0.7;
+								break;
+							case 2:
+								ttl = 1;
+								break;
+							case 3:
+								ttl = 0.3;
+								break;
+							case 4:
+								ttl = 0.2;
+								break;
+					}
+				
+					newCloud = new SmokeCloud(this.world, this.world.minettler.jstools.getRndInteger(this.posx, this.posx+this.width), this.world.minettler.jstools.getRndInteger(this.posy, this.posy+height), size, ttl);
+					world.mainController.smokeCloudController.smokeClouds.push(newCloud);
+					counter++;
+				}
+			}
+			
+			this.move = function(){
+				this.posx = object.posx+marginx;
+				this.posy = object.posy+marginy;
+				
+				if(this.actualTicks >= this.emitTicks){
+					this.emit();
+					this.actualTicks = 0;
+				}
+				
+				this.actualTicks++;
+			}
+			
+			this.emit();
+		}
+		
+		function World(minettler){
+			this.width = 800;
+			this.height = 600;
+			this.waterline = 201;
+			this.minettler = minettler;
+			
+			this.playerLives = PLAYER_LIVES;
+			this.playerScore = 0;
+			
+			this.mainMenu = function(){
+				
+				this.mainController = new MainMenuController(this);
+				
+				this.mainController.addButtonController(new ButtonController(this));
+				
+			}
+			
+			this.newgame = function(){
+				
+				this.mainController = new GameController(this);
+				
+				this.mainController.addPlayerBoatController(new PlayerBoatController(this));
+				this.mainController.addWoodPlankController(new WoodPlankController(this));
+				this.mainController.addBackgroundCloudController(new BackgroundCloudController(this));
+				this.mainController.addUboatBombController(new UboatBombController(this));
+				this.mainController.addSmokeEmitterController(new SmokeEmitterController(this));
+				this.mainController.addSmokeCloudController(new SmokeCloudController(this));
+				this.mainController.addBubbleController(new BubbleController(this));
+				this.mainController.addUboatController(new UboatController(this));
+				this.mainController.addPlayerBombController(new PlayerBombController(this));
+				this.mainController.addExplosionController(new ExplosionController(this));
+				this.mainController.addUIController(new UIController(this));
+				
+			}
+			
+			this.aboutMenu = function(){
+				
+				this.mainController = new AboutMenuController(this);
+				
+			}
+			
+			this.refresh = function(){
+				this.mainController.do();
+				this.minettler.scrnController.draw();
+			}
+		}
+		
+		
+		function JSCommonsTools(){
+			
+			this.arrayRemove = function (array, element) {
+				var index = array.indexOf(element);
+				
+				if (index !== -1) {
+					array.splice(index, 1);
+				}
+			}
+			
+			this.getRndInteger = function(min, max){
+				return Math.floor(Math.random() * (max - min) ) + min;
+			}
+			
+			this.checkAABBCollision = function(object1, object2){
+				
+				var ret = true;
+				
+				if(object2.posy+object2.sprite.height < object1.posy ||
+					object2.posy > object1.posy+object1.sprite.height ||
+					object2.posx > object1.posx+object1.sprite.width ||
+					object2.posx+object2.sprite.width < object1.posx){
+					ret = false;
+				}
+				
+				return ret;
+			}
+			
+		}
+		
+		function Minettler(){
+			
+			this.scrnController = new ScreenController();
+			this.lyController = new LayerController();
+			
+			this.scrnController.lyController = this.lyController;
+			
+			this.jstools = new JSCommonsTools();
+			
+			var world = new World(this);
+			
+			this.do = function(){
+				world.refresh();
+			}
+			
+			world.mainMenu();
+			
+			window.setInterval(this.do, 60);
+			
+		}
+		
+		function init(){
+			
+			var game = new Minettler();
+			
+		}
+
+	</script>
+</head>
+<body>
+	<canvas id="screen" width="800" height="600">
+	<p>You are using and unsupported Web browser</p>
+	</canvas>
+</body>
+</html>
