@@ -1,4 +1,4 @@
-#Minettler
+# Minettler
 
 Minettler is a basic SinkSub inspired game, make with pure HTML5 and JavaScript.
 
